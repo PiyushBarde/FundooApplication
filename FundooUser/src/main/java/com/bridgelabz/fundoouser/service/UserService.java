@@ -270,7 +270,7 @@ public class UserService implements IUserService {
       }
     
     
-
+    //To upload file to S3 storage
     public String uploadFile(MultipartFile file) {
         File fileObj = convertMultiPartFileToFile(file);
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
@@ -279,7 +279,7 @@ public class UserService implements IUserService {
         return "File uploaded : " + fileName;
     }
 
-
+    //To download file from S3 storage
     public byte[] downloadFile(String fileName) {
         S3Object s3Object = s3Client.getObject(bucketName, fileName);
         S3ObjectInputStream inputStream = s3Object.getObjectContent();
@@ -292,13 +292,13 @@ public class UserService implements IUserService {
         return null;
     }
 
-
+    //To delete file from S3 storage
     public String deleteFile(String fileName) {
         s3Client.deleteObject(bucketName, fileName);
         return fileName + " removed ...";
     }
 
-
+    //To convert file
     private File convertMultiPartFileToFile(MultipartFile file) {           // <--- to convert MF file to byte file
         File convertedFile = new File(file.getOriginalFilename());
         try (FileOutputStream fos = new FileOutputStream(convertedFile)) {
