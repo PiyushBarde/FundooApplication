@@ -6,7 +6,12 @@ import java.util.List;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.bridgelabz.fundoouser.dto.LoginDTO;
 import com.bridgelabz.fundoouser.dto.ResponseDTO;
@@ -107,6 +114,42 @@ public class UserController {
     public ResponseEntity<ResponseDTO> deleteById(@PathVariable String token) {
         ResponseDTO response = new ResponseDTO("User deleted successfully", this.service.deleteById(token));
         return new ResponseEntity(response, HttpStatus.OK);
+    }
+    
+    //to download excel file
+    @GetMapping("/download")
+    public ResponseEntity<Resource> getFile() {
+      String filename = "UserRegistration.xlsx";
+      InputStreamResource file = new InputStreamResource(service.load());
+      return ResponseEntity.ok()
+          .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+          .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+          .body(file);
+    }
+    
+    //to upload file through param
+    @PostMapping("/file/upload")
+    public ResponseEntity<String> uploadFile(@RequestParam MultipartFile file) {
+        return new ResponseEntity(service.uploadFile(file), HttpStatus.OK);
+    }
+    
+    //to download file from s3
+    @GetMapping("/file/download/{fileName}")
+    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable String fileName) {
+        byte[] data = service.downloadFile(fileName);
+        ByteArrayResource resource = new ByteArrayResource(data);
+        return ResponseEntity
+                .ok()
+                .contentLength(data.length)
+                .header("Content-type", "application/octet-stream")
+                .header("Content-disposition", "attachment; filename=\"" + fileName + "\"")
+                .body(resource);
+    }
+    
+    //to delete file from s3
+    @DeleteMapping("/file/delete/{fileName}")
+    public ResponseEntity<String> deleteFile(@PathVariable String fileName) {
+        return new ResponseEntity(service.deleteFile(fileName), HttpStatus.OK);
     }
     
     //--------------rest template api------------------//

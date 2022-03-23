@@ -1,12 +1,23 @@
 package com.bridgelabz.fundoouser.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.util.IOUtils;
 import com.bridgelabz.fundoouser.dto.LoginDTO;
 import com.bridgelabz.fundoouser.dto.UserDTO;
 import com.bridgelabz.fundoouser.exceptions.PasswordException;
@@ -17,9 +28,13 @@ import com.bridgelabz.fundoouser.model.User;
 import com.bridgelabz.fundoouser.rabbitmqconfig.RabbitMqConfig;
 import com.bridgelabz.fundoouser.repositories.UserRepository;
 import com.bridgelabz.fundoouser.util.EmailSenderService;
+import com.bridgelabz.fundoouser.util.ExcelHelper;
 import com.bridgelabz.fundoouser.util.TokenUtil;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class UserService implements IUserService {
     @Autowired
     UserRepository repo;
@@ -32,6 +47,12 @@ public class UserService implements IUserService {
     
     @Autowired
     RabbitTemplate rabbitTemplate;
+    
+    @Value("${application.bucket.name}")
+    private String bucketName;
+
+    @Autowired
+    private AmazonS3 s3Client;
 
     
     //to register user 
@@ -241,6 +262,53 @@ public class UserService implements IUserService {
         }
     }
     
+    //to download excel sheet from data base
+    public ByteArrayInputStream load() {
+        List<User> users = repo.findAll();
+        ByteArrayInputStream in = ExcelHelper.usersToExcel(users);
+        return in;
+      }
+    
+    
+
+    public String uploadFile(MultipartFile file) {
+        File fileObj = convertMultiPartFileToFile(file);
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        s3Client.putObject(new PutObjectRequest(bucketName, fileName, fileObj));
+        fileObj.delete();
+        return "File uploaded : " + fileName;
+    }
+
+
+    public byte[] downloadFile(String fileName) {
+        S3Object s3Object = s3Client.getObject(bucketName, fileName);
+        S3ObjectInputStream inputStream = s3Object.getObjectContent();
+        try {
+            byte[] content = IOUtils.toByteArray(inputStream);			//<- converts it to bite array
+            return content;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+    public String deleteFile(String fileName) {
+        s3Client.deleteObject(bucketName, fileName);
+        return fileName + " removed ...";
+    }
+
+
+    private File convertMultiPartFileToFile(MultipartFile file) {           // <--- to convert MF file to byte file
+        File convertedFile = new File(file.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(convertedFile)) {
+            fos.write(file.getBytes());
+        } catch (IOException e) {
+            log.error("Error converting multipartFile to file", e);
+        }
+        return convertedFile;
+    }
+ 
     //---------------------------Rest template-------------------------//
     
     public User getByIdAPI(Integer userId) {
