@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +32,11 @@ import com.bridgelabz.fundoouser.repositories.UserRepository;
 import com.bridgelabz.fundoouser.util.EmailSenderService;
 import com.bridgelabz.fundoouser.util.ExcelHelper;
 import com.bridgelabz.fundoouser.util.TokenUtil;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -197,7 +204,7 @@ public class UserService implements IUserService {
             this.sender.sendEmail(((User)user.get()).getEmail(), "User successfully retrieved", "for User : \n" 
             		+ user + "\n click on following link to retrieve data : \n http://localhost:9000/user/findbyid/" 
             		+ token);
-            return (User)user.get();
+            return user.get();
         }
     }
     
@@ -251,7 +258,7 @@ public class UserService implements IUserService {
     
     //to delete user by id
     public Object deleteById(String token) {
-        Integer userId = this.tokenUtil.decodeToken(token);
+        Integer userId = tokenUtil.decodeToken(token);
         Optional<User> user = this.repo.findById(userId);
         if (user.isEmpty()) {
             throw new UserException("Invalid token..please input valid token");
@@ -308,19 +315,30 @@ public class UserService implements IUserService {
         }
         return convertedFile;
     }
+    
+    //To create QR code
+	public void generateQRCodeImage(String token, int width, int height, String filePath)
+            throws WriterException, IOException {
+		Integer userId = tokenUtil.decodeToken(token);
+		Optional<User> user = repo.findById(userId);
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        BitMatrix bitMatrix = qrCodeWriter.encode(user.get().toString(), BarcodeFormat.QR_CODE, width, height);
+
+        Path path = FileSystems.getDefault().getPath(filePath);
+        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+       
+    }
  
     //---------------------------Rest template-------------------------//
     
     public User getByIdAPI(Integer userId) {
-        Optional<User> user = this.repo.findById(userId);
+        Optional<User> user = repo.findById(userId);
         if (user.isEmpty()) {
             throw new UserException("There are no users with given id, invalid token");
         } else {
             return (User)user.get();
         }
     }
-
-
-	
-	
+    
 }
+    

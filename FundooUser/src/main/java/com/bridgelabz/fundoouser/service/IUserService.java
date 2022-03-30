@@ -2,6 +2,7 @@
 
 package com.bridgelabz.fundoouser.service;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.bridgelabz.fundoouser.dto.LoginDTO;
 import com.bridgelabz.fundoouser.dto.UserDTO;
 import com.bridgelabz.fundoouser.model.User;
+import com.google.zxing.WriterException;
 
 public interface IUserService {
     User registerUser(UserDTO dto);
@@ -44,5 +46,7 @@ public interface IUserService {
 	byte[] downloadFile(String fileName);
 
 	String deleteFile(String fileName);
+
+	void generateQRCodeImage(String token, int i, int j, String qR_CODE_IMAGE_PATH) throws WriterException, IOException;
 
 }

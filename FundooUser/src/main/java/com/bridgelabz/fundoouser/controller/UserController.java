@@ -33,6 +33,7 @@ import com.bridgelabz.fundoouser.service.IUserService;
 @RestController
 @RequestMapping("/user")
 public class UserController {
+	private  final String QR_CODE_IMAGE_PATH = "./src/main/resources/QRCode.png";
 	
     @Autowired
     IUserService service;
@@ -151,6 +152,16 @@ public class UserController {
     public ResponseEntity<String> deleteFile(@PathVariable String fileName) {
         return new ResponseEntity(service.deleteFile(fileName), HttpStatus.OK);
     }
+    
+
+	//To generate QR code
+    @GetMapping(value = "/genrateAndDownloadQRCode/{token}")
+		public void download(
+		@PathVariable String token)
+	    throws Exception {
+	        service.generateQRCodeImage(token, 350, 350, QR_CODE_IMAGE_PATH);
+    }
+    
     
     //--------------rest template api------------------//
     
